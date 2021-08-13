@@ -27,7 +27,7 @@ def apply_roi(image, roi_coords):
 
 class YAGScreen:
     def __init__(self, interface, target_charge=-1, charge_deviation=0.1,
-                 image_directory='pics', n_samples=1):
+                 image_directory='pics', n_samples=1, average_measurements=False):
 
         """
         YAGScreen measurement class
@@ -60,6 +60,11 @@ class YAGScreen:
         self.image_directory = image_directory
 
         self.interface = interface
+        self.average_measurements = average_measurements
+
+        self.output_keys = ['ellipses', 'processed_images', 'rms_x',
+                            'rms_y', 'n_blobs', 'image_check',
+                            'centroid_offset']
 
     def save_images(self, data_dict):
         # determine if we are saving images
@@ -104,34 +109,34 @@ class YAGScreen:
 
         # process and identify blobs in image
         min_size = 100
-        rms_x = []
-        rms_y = []
-        ellipses = []
-        n_blobs = []
-        processed_images = []
-        image_check = []
-        centroid_offset = []
+        outputs = {}
+        for ele in self.output_keys:
+            outputs[ele] = []
+
         for i in range(len(roi_images)):
             processed_image_data = image_processing.process_and_fit(roi_images[i],
                                                                     min_size)
-            rms_x += [processed_image_data['rms_x']]
-            rms_y += [processed_image_data['rms_y']]
-            ellipses += [processed_image_data['ellipses']]
-            n_blobs += [processed_image_data['n_blobs']]
-            processed_images += [processed_image_data['smoothed_image']]
-            centroid_offset += [processed_image_data['centroid_offset']]
 
-            image_check += [image_processing.check_image(processed_image_data['binary_image'],
-                                                         processed_image_data['smoothed_image'])]
+            for ele in self.output_keys:
+                if ele == 'image_check':
+                    outputs[ele] += [image_processing.check_image(processed_image_data['binary_image'],
+                                                                  processed_image_data['smoothed_image'])]
+                elif ele == 'processed_images':
+                    outputs[ele] += [processed_image_data['smoothed_image']]
+                else:
+                    outputs[ele] += [processed_image_data[ele]]
 
-        outputs = {'ellipses': np.array(ellipses), 'processed_images': np.array(processed_images),
-                   'rms_x': np.array(rms_x), 'rms_y': np.array(rms_y),
-                   'n_blobs': np.array(n_blobs), 'image_check': np.array(image_check),
-                   'centroid_offset': np.array(centroid_offset),
-                   }
+        for ele in self.output_keys:
+            outputs[ele] = np.array(outputs[ele])
 
         # add in raw data
         outputs.update(raw_outputs)
+
+        # if we need to, get averaged results
+        if self.average_measurements:
+            avg_keys = ['rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY', 'centroid_offset']
+            for key in avg_keys:
+                outputs[key] = np.nanmean(outputs[key])
 
         return outputs
 
