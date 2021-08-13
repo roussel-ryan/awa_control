@@ -1,26 +1,32 @@
 import time
 import awa_interface
 from observations.emittance import Emittance
-from xopt.bayesian_exploration import bayesian_exploration
+from xopt.bayesian.algorithms import bayesian_exploration
 
 import logging
+
 logging.basicConfig(level=logging.DEBUG)
 
 
-def evaluate_emittance(inputs, interface):
-    interface.set_parameters(inputs)
+class Evaluator:
+    def __init__(self, interface):
+        self.interface = interface
 
-    time.sleep(1.0)
+    def evaluate_emittance(self, inputs):
+        self.interface.set_parameters(inputs)
 
-    observation = Emittance(interface,
-                            50e-3 / 1000,
-                            0.002,
-                            1.27,
-                            n_samples=2)
+        time.sleep(1.0)
 
-    results = observation.measure_emittance()
+        observation = Emittance(self.interface,
+                                50e-3 / 1000,
+                                0.002,
+                                1.27,
+                                n_samples=2,
+                                average_measurements=True)
 
-    return results
+        results = observation.measure_emittance()
+
+        return results
 
 
 VOCS = {
@@ -51,8 +57,8 @@ VOCS = {
 }
 
 awa_interface = awa_interface.AWAInterface(testing=True)
+evaluator = Evaluator(awa_interface)
 opt_results = bayesian_exploration(VOCS,
-                                   evaluate_emittance,
+                                   evaluator.evaluate_emittance,
                                    n_steps=0,
-                                   n_initial_samples=1,
-                                   eval_args=[awa_interface])
+                                   n_initial_samples=1)

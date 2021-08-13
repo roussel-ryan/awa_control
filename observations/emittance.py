@@ -81,7 +81,7 @@ class Emittance(yag_screen.YAGScreen):
 
         # if we need to, get averaged results
         if self.average_measurments:
-            avg_keys = ['EMITY', 'rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY']
+            avg_keys = ['EMITY', 'rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY', 'centroid_offset']
             for key in avg_keys:
                 screen_measurements[key] = np.nanmean(screen_measurements[key])
 
