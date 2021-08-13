@@ -231,7 +231,7 @@ class AWAInterface:
                 centroid_y[n_shots] = data
                 centroid_x[n_shots] = data
 
-                roi = np.array(((10, 10), (690, 690)))
+                roi = np.array(((10, 10), (990, 990)))
                 charge[n_shots] = np.ones(4)
                 n_shots += 1
 
@@ -270,17 +270,17 @@ class AWAInterface:
         # data is particle coordinates
         data = np.load('test_data/test_screen.npy')
 
-        size = 50e-3
-        bins = 700
+        size = 25e-3
+        bins = 1000
         img, xedges, yedges = np.histogram2d(data['x'], data['y'],
                                              range=np.array(((-1.0, 1.0),
-                                                             (-1.0, 1.0))) * size / 2.0,
+                                                             (-1.0, 1.0))) * size,
                                              bins=(bins, bins))
 
         img = img.T
 
         # add noise
         img = img / np.max(img)
-        img = 0.05 * np.random.rand(*img.shape) + img
+        img = 0.0 * np.random.rand(*img.shape) + img
 
         return img, 1.0

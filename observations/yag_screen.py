@@ -110,6 +110,7 @@ class YAGScreen:
         n_blobs = []
         processed_images = []
         image_check = []
+        centroid_offset = []
         for i in range(len(roi_images)):
             processed_image_data = image_processing.process_and_fit(roi_images[i],
                                                                     min_size)
@@ -118,6 +119,7 @@ class YAGScreen:
             ellipses += [processed_image_data['ellipses']]
             n_blobs += [processed_image_data['n_blobs']]
             processed_images += [processed_image_data['smoothed_image']]
+            centroid_offset += [processed_image_data['centroid_offset']]
 
             image_check += [image_processing.check_image(processed_image_data['binary_image'],
                                                          processed_image_data['smoothed_image'])]
@@ -125,6 +127,7 @@ class YAGScreen:
         outputs = {'ellipses': np.array(ellipses), 'processed_images': np.array(processed_images),
                    'rms_x': np.array(rms_x), 'rms_y': np.array(rms_y),
                    'n_blobs': np.array(n_blobs), 'image_check': np.array(image_check),
+                   'centroid_offset': np.array(centroid_offset),
                    }
 
         # add in raw data

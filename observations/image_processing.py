@@ -24,7 +24,7 @@ def weighted_std(values, weights):
 
     # Fast and numerically precise:
     variance = np.average((values - average) ** 2, weights=weights)
-    return np.sqrt(variance)
+    return average, np.sqrt(variance)
 
 
 def process_and_fit(image, min_size=100, verbose=False):
@@ -34,6 +34,7 @@ def process_and_fit(image, min_size=100, verbose=False):
     - thresholds the image using a triangle threshold algorithm
     - identifies blobs based on blob size, if blob size < min_size the blob is removed
 
+    NOTE: all measurements are in pixels
     """
     logger = logging.getLogger(__name__)
 
@@ -68,11 +69,16 @@ def process_and_fit(image, min_size=100, verbose=False):
     proj_x = np.sum(smoothed_image, axis=0)
     proj_y = np.sum(smoothed_image, axis=1)
 
-    # calculate stds
+    # calculate stds and means
     x_len = len(proj_x)
     y_len = len(proj_y)
-    rms_x = weighted_std(np.arange(x_len), proj_x)
-    rms_y = weighted_std(np.arange(y_len), proj_y)
+    mean_x, rms_x = weighted_std(np.arange(x_len), proj_x)
+    mean_y, rms_y = weighted_std(np.arange(y_len), proj_y)
+
+    # calculate distance to center
+    beam_center = np.array((mean_x, mean_y))
+    image_center = np.array(smoothed_image.shape) / 2
+    distance_to_center = np.linalg.norm(image_center - beam_center)
 
     if verbose:
         fig, ax = plt.subplots(1, 3)
@@ -87,6 +93,9 @@ def process_and_fit(image, min_size=100, verbose=False):
               'smoothed_image': smoothed_image,
               'n_blobs': n_blobs,
               'ellipses': ellipses,
+              'centroid_offset': distance_to_center,
+              'mean_x': mean_x,
+              'mean_y': mean_y,
               'rms_x': rms_x,
               'rms_y': rms_y}
 

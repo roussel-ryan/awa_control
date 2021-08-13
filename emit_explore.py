@@ -3,6 +3,9 @@ import awa_interface
 from observations.emittance import Emittance
 from xopt.bayesian_exploration import bayesian_exploration
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 
 def evaluate_emittance(inputs, interface):
     interface.set_parameters(inputs)
@@ -10,9 +13,9 @@ def evaluate_emittance(inputs, interface):
     time.sleep(1.0)
 
     observation = Emittance(interface,
-                            50e-3 / 700,
+                            50e-3 / 1000,
                             0.002,
-                            0.87,
+                            1.27,
                             n_samples=2)
 
     results = observation.measure_emittance()
@@ -38,11 +41,10 @@ VOCS = {
     },
 
     'constraints': {
-        'FWHMX': ['LESS_THAN', 400],
-        'FWHMY': ['LESS_THAN', 400],
-        'CX_DEV': ['LESS_THAN', 100],
-        'CY_DEV': ['LESS_THAN', 100],
-        'N_BEAMLETS': ['GREATER_THAN', 3]
+        'rms_x': ['LESS_THAN', 400],
+        'rms_y': ['LESS_THAN', 400],
+        'centroid_offset': ['LESS_THAN', 100],
+        'n_blobs': ['GREATER_THAN', 3]
 
     }
 
@@ -51,6 +53,6 @@ VOCS = {
 awa_interface = awa_interface.AWAInterface(testing=True)
 opt_results = bayesian_exploration(VOCS,
                                    evaluate_emittance,
-                                   n_steps=1,
+                                   n_steps=0,
                                    n_initial_samples=1,
                                    eval_args=[awa_interface])

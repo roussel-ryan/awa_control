@@ -77,12 +77,12 @@ class Emittance(yag_screen.YAGScreen):
                 emittances += [np.NaN]
 
         emittances = np.array(emittances)
-        measurement_outputs = screen_measurements.update({'EMITY': emittances})
-        # if we need to, get averaged results
+        screen_measurements.update({'EMITY': emittances})
 
+        # if we need to, get averaged results
         if self.average_measurments:
             avg_keys = ['EMITY', 'rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY']
             for key in avg_keys:
-                measurement_outputs[key] = np.nanmean(measurement_outputs[key])
+                screen_measurements[key] = np.nanmean(screen_measurements[key])
 
-        return measurement_outputs
+        return screen_measurements

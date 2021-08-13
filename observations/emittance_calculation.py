@@ -6,7 +6,7 @@ from scipy.signal import find_peaks
 from skimage import filters
 
 
-def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
+def calculate_emittance(image, px_scale, slit_sep_m, R12):
     """
     calculate emittance using processed beam image
 
@@ -21,8 +21,8 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
     slit_sep_m : float
         Slit seperation in meters
 
-    drift_length : float
-        Longitudinal drift distance between screen and slits
+    R12 : float
+        R12 matrix element, usually the drift length in meters
 
     """
 
@@ -44,16 +44,9 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
         ax[1].imshow(image)
         print(image)
     logger.debug(f'triangle_threshold: {triangle_threshold}')
-    proj = np.where(orig_proj > triangle_threshold + 0.05, orig_proj, 0)
+    proj = np.where(orig_proj > 0, orig_proj, 0)
 
-    # plot proj if in debugging
-    if 1:
-        fig, ax = plt.subplots(1, 3)
-        ax[0].imshow(image)
-        ax[1].plot(orig_proj)
-        ax[2].plot(proj)
 
-        plt.show()
 
     # we assume that the beam is divergent, as a result the peaks should be at least
     # 2 mm apart
@@ -62,6 +55,16 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
     if len(peaks) < 5:
         logger.warning(f'detected only {len(peaks)} peaks '
                        '-- emittance might be underestimated')
+
+        # plot proj if in debugging
+    if 0:
+        fig, ax = plt.subplots(1, 3)
+        ax[0].imshow(image)
+        ax[1].plot(orig_proj)
+        ax[2].plot(proj)
+        for pk in peaks:
+            ax[2].axvline(pk)
+        plt.show()
 
     logger.debug(f'peak finding found {len(peaks)} peaks')
     logger.debug(f'found peaks at {peaks} px')
@@ -93,17 +96,19 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
     sorted_idx = np.argsort(b)
     a, b, c = a[sorted_idx], b[sorted_idx], c[sorted_idx]
 
-    logger.debug(f'mean beamlet with_px: {np.mean(c)}')
-    logger.debug(a)
-    logger.debug(b)
-    logger.debug(c)
+    logger.debug(f'mean beamlet width_px: {np.mean(c)}')
+
     # convert pixel lengths to meters
     b = b * px_scale
     c = c * px_scale
 
+    logger.debug(f'a: {a}')
+    logger.debug(f'b: {b}')
+    logger.debug(f'c: {c}')
+
     # define slit locations
     x_slit_m = np.linspace(-(n_blobs - 1) / 2 * slit_sep_m, (n_blobs - 1) / 2 * slit_sep_m, n_blobs)
-    logger.debug(x_slit_m)
+    logger.debug(f'slit locations (m): {x_slit_m}')
     # calculate beam centroid at slits
     ixi = np.sum(a * x_slit_m) / np.sum(a)
 
@@ -115,13 +120,13 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
     ixxi = np.sum(a * (x_slit_m - ixi) ** 2) / np.sum(a)
 
     # calc mean divergence (xp) of each beamlet
-    xp = (b - x_slit_m) / drift_length
+    xp = (b - x_slit_m) / R12
 
     # calc mean divergence of beam at slits -> should be approx 0 for perfectly aligned beam
     ixpi = np.sum(a * xp) / np.sum(a)
 
-    # calc rms divergence for each beamlet (sp) at the screen c = R_12 * sp
-    sp = c / drift_length
+    # calc rms divergence of each beamlet (sp) at the screen c = R_12 * sp
+    sp = c / R12
 
     # calc rms divergence at slits - weighted average of the divergence of each beamlet (sp)
     ixpxpi = np.sum(a * sp ** 2) / np.sum(a)
@@ -142,7 +147,7 @@ def calculate_emittance(image, px_scale, slit_sep_m, drift_length):
     emittance = np.sqrt(ixxi * ixpxpi)
     logger.info(f'calculated emittance: {emittance:.2e}, n_peaks:{len(peaks)}')
 
-    return emittance, ixxi, ixpxpi, ixxpi
+    return emittance
 
 
 if __name__ == '__main__':
