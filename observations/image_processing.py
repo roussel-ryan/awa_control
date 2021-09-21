@@ -161,5 +161,5 @@ if __name__ == '__main__':
     img = img / np.max(img)
     img = 0.15 * np.random.rand(*img.shape) + img
 
-    print(check_image(img))
+    #print(check_image(img))
     plt.show()

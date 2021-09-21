@@ -1,3 +1,5 @@
+pics/*
+emittance/*
 test_data/*
 .idea/*
 *__pycache__/*

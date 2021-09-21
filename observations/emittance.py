@@ -61,6 +61,8 @@ class Emittance(yag_screen.YAGScreen):
         n_measurements = len(screen_measurements['processed_images'])
 
         valid_measurements = np.all((screen_measurements['image_check'],
+                                     screen_measurements['rms_x'] < 150,
+                                     screen_measurements['rms_y'] < 150,
                                      screen_measurements['n_blobs'] >= self.n_required_blobs), axis=0)
 
         # for each valid measurement index calculate the emittance

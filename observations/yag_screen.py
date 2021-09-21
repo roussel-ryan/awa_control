@@ -27,7 +27,7 @@ def apply_roi(image, roi_coords):
 
 class YAGScreen:
     def __init__(self, interface, target_charge=-1, charge_deviation=0.1,
-                 image_directory='pics', n_samples=1, average_measurements=False):
+                 image_directory='pics', n_samples=1, save_images=True, average_measurements=False):
 
         """
         YAGScreen measurement class
@@ -56,7 +56,7 @@ class YAGScreen:
         self.target_charge = target_charge
         self.charge_deviation = charge_deviation
 
-        self.save_image_flag = False
+        self.save_image_flag = save_images
         self.image_directory = image_directory
 
         self.interface = interface
@@ -67,19 +67,14 @@ class YAGScreen:
                             'centroid_offset']
 
     def save_images(self, data_dict):
-        # determine if we are saving images
-        if self.image_directory is None:
-            self.save_image_flag = False
-        else:
-            self.save_image_flag = True
-
         self.logger.debug(f'saving image data to {self.image_directory}')
         fname = f'{self.image_directory}/img_{time.time()}.h5'
         with h5py.File(fname, 'w') as f:
             for name, item in data_dict.items():
                 if 'images' in name:
                     f.create_dataset(name, data=item)
-
+                elif name=='ellipses':
+                    pass
                 else:
                     if item is not None:
                         f['/'].attrs[name] = item

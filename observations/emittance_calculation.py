@@ -42,7 +42,7 @@ def calculate_emittance(image, px_scale, slit_sep_m, R12):
         fig, ax = plt.subplots(1, 2)
         ax[0].plot(orig_proj)
         ax[1].imshow(image)
-        print(image)
+        #print(image)
     logger.debug(f'triangle_threshold: {triangle_threshold}')
     proj = np.where(orig_proj > 0, orig_proj, 0)
 

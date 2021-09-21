@@ -65,10 +65,10 @@ class AWAInterface:
             pythoncom.CoInitialize()
             self.UseNIFG = use_frame_grabber
             if not self.UseNIFG:
-                self.logger.debug('Connecting to AWAPGCamera application')
+                self.logger.info('Connecting to AWAPGCamera application')
                 self.m_CameraPort = self.m_AWAPGCamPort
             else:
-                self.logger.debug('Connecting to NI Frame Grabber application')
+                self.logger.info('Connecting to NI Frame Grabber application')
                 self.m_CameraPort = self.m_AWANIFGPort
             self.m_CameraClient.connect(("127.0.0.1", self.m_CameraPort))
             self.m_CameraClient.setblocking(0)
@@ -144,7 +144,7 @@ class AWAInterface:
         elf.
         """
 
-        self.logger.debug(f'taking n samples {n_samples}')
+        self.logger.info(f'taking n samples {n_samples}')
 
         n_shots = 0
         img = []
