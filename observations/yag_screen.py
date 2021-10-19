@@ -64,7 +64,7 @@ class YAGScreen:
 
         self.output_keys = ['ellipses', 'processed_images', 'rms_x',
                             'rms_y', 'n_blobs', 'image_check',
-                            'centroid_offset']
+                            'centroid_offset', 'total_intensity']
 
     def save_images(self, data_dict):
         self.logger.debug(f'saving image data to {self.image_directory}')
@@ -79,7 +79,7 @@ class YAGScreen:
                     if item is not None:
                         f['/'].attrs[name] = item
 
-    def _get_images(self):
+    def _get_images(self, **kwargs):
         """
         Get data from the controller_interface and check its validity
 
@@ -103,21 +103,20 @@ class YAGScreen:
             roi_images += [apply_roi(raw_outputs['raw_images'][i], raw_outputs['ROI'])]
 
         # process and identify blobs in image
-        min_size = 100
         outputs = {}
         for ele in self.output_keys:
             outputs[ele] = []
 
         for i in range(len(roi_images)):
             processed_image_data = image_processing.process_and_fit(roi_images[i],
-                                                                    min_size)
+                                                                    **kwargs)
 
             for ele in self.output_keys:
                 if ele == 'image_check':
                     outputs[ele] += [image_processing.check_image(processed_image_data['binary_image'],
-                                                                  processed_image_data['smoothed_image'])]
+                                                                  processed_image_data['post_processed_image'])]
                 elif ele == 'processed_images':
-                    outputs[ele] += [processed_image_data['smoothed_image']]
+                    outputs[ele] += [processed_image_data['post_processed_image']]
                 else:
                     outputs[ele] += [processed_image_data[ele]]
 
@@ -129,18 +128,21 @@ class YAGScreen:
 
         # if we need to, get averaged results
         if self.average_measurements:
-            avg_keys = ['rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY', 'centroid_offset']
+            avg_keys = ['rms_x', 'rms_y', 'CX', 'CY', 'n_blobs', 'FWHMX', 'FWHMY', 'centroid_offset', 'total_intensity']
             for key in avg_keys:
-                outputs[key] = np.nanmean(outputs[key])
+                out = outputs[key].copy()
+                outputs[key] = np.nanmean(out)
+                outputs[key + '_std'] = np.nanstd(out)
+
 
         return outputs
 
-    def measure_screen(self):
+    def measure_screen(self, **kwargs):
         """
         Do screen measurement using controller_interface
 
         """
-        outputs = self._get_images()
+        outputs = self._get_images(**kwargs)
 
         if self.save_image_flag:
             self.save_images(outputs)

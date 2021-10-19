@@ -6,6 +6,10 @@ from scipy.signal import find_peaks
 from skimage import filters
 
 
+logger = logging.getLogger(__name__)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+
+
 def calculate_emittance(image, px_scale, slit_sep_m, R12):
     """
     calculate emittance using processed beam image
@@ -26,8 +30,6 @@ def calculate_emittance(image, px_scale, slit_sep_m, R12):
 
     """
 
-    logger = logging.getLogger(__name__)
-    logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
     # get projection
     orig_proj = np.sum(image, axis=1)
@@ -47,7 +49,6 @@ def calculate_emittance(image, px_scale, slit_sep_m, R12):
     proj = np.where(orig_proj > 0, orig_proj, 0)
 
 
-
     # we assume that the beam is divergent, as a result the peaks should be at least
     # 2 mm apart
     peaks, _ = find_peaks(proj, distance=0.5e-3 / px_scale)
@@ -56,15 +57,15 @@ def calculate_emittance(image, px_scale, slit_sep_m, R12):
         logger.warning(f'detected only {len(peaks)} peaks '
                        '-- emittance might be underestimated')
 
-        # plot proj if in debugging
+    # plot proj if in debugging
     if 0:
         fig, ax = plt.subplots(1, 3)
+        fig.set_size_inches(12, 4)
         ax[0].imshow(image)
         ax[1].plot(orig_proj)
         ax[2].plot(proj)
         for pk in peaks:
             ax[2].axvline(pk)
-        plt.show()
 
     logger.debug(f'peak finding found {len(peaks)} peaks')
     logger.debug(f'found peaks at {peaks} px')
