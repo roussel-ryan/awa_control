@@ -27,7 +27,7 @@ def weighted_std(values, weights):
     return average, np.sqrt(variance)
 
 
-def process_and_fit(image, min_size=100, verbose=False):
+def process_and_fit(image, min_size=100, min_intensity=0.05, verbose=False):
     """
     Process an image with a region of interest specified
     - smooths the image with a 3 px Gaussian filter
@@ -39,20 +39,24 @@ def process_and_fit(image, min_size=100, verbose=False):
     logger = logging.getLogger(__name__)
 
     smoothed_image = filters.gaussian(image, 3)
+    
 
     triangle_threshold = filters.threshold_triangle(smoothed_image)
     logger.debug(f'triangle_threshold: {triangle_threshold}')
     binary_image = np.where(smoothed_image > triangle_threshold, 1, 0)
-
     binary_image = remove_small_blobs(binary_image, min_size)
     binary_image = binary_image.astype(np.uint8)
+    smoothed_image = np.where(binary_image, smoothed_image, 0)
+    
+    #intensity thresholding:
+    binary_image2, intensities = remove_dim_blobs(smoothed_image, binary_image, min_intensity)
+    binary_image2 = binary_image2.astype(np.uint8)
+    postprocessed_image = np.where(binary_image2, smoothed_image, 0)
 
-    smoothed_image = np.where(binary_image,
-                              smoothed_image, 0)
-
-
+    #------
+    
     # find contours
-    cnts, huers = cv2.findContours(binary_image, cv2.RETR_EXTERNAL,
+    cnts, huers = cv2.findContours(binary_image2, cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_SIMPLE)[-2:]
 
     # fit ellipses
@@ -66,8 +70,8 @@ def process_and_fit(image, min_size=100, verbose=False):
 
     n_blobs = len(ellipses)
 
-    proj_x = np.sum(smoothed_image, axis=0)
-    proj_y = np.sum(smoothed_image, axis=1)
+    proj_x = np.sum(postprocessed_image, axis=0)
+    proj_y = np.sum(postprocessed_image, axis=1)
 
     # calculate stds and means
     x_len = len(proj_x)
@@ -77,19 +81,19 @@ def process_and_fit(image, min_size=100, verbose=False):
 
     # calculate distance to center
     beam_center = np.array((mean_x, mean_y))
-    image_center = np.array(smoothed_image.shape) / 2
+    image_center = np.array(postprocessed_image.shape) / 2
     distance_to_center = np.linalg.norm(image_center - beam_center)
 
     if verbose:
         fig, ax = plt.subplots(1, 3)
         c = ax[0].imshow(image)
-        ax[1].imshow(smoothed_image)
-        ax[2].imshow(binary_image)
+        ax[1].imshow(postprocessed_image)
+        ax[2].imshow(binary_image2)
 
         fig.colorbar(c)
         plt.show()
 
-    output = {'binary_image': binary_image,
+    output = {'binary_image': binary_image2,
               'smoothed_image': smoothed_image,
               'n_blobs': n_blobs,
               'ellipses': ellipses,
@@ -97,8 +101,9 @@ def process_and_fit(image, min_size=100, verbose=False):
               'mean_x': mean_x,
               'mean_y': mean_y,
               'rms_x': rms_x,
-              'rms_y': rms_y}
-
+              'rms_y': rms_y,
+              'blob_intensities': intensities,
+              'postprocessed_image': postprocessed_image}
     return output
 
 
@@ -129,13 +134,27 @@ def check_image(binary_image, simage):
 def remove_small_blobs(image, min_size):
     labels, n_blobs = ndimage.label(image)
     new_image = image.copy()
-
+    logger = logging.getLogger(__name__)
     for i in range(1, n_blobs + 1):
         counts = np.count_nonzero(i == labels)
-        if counts < min_size:
+        if counts < min_size: #or if sum(over pixels) 
             new_image = np.where(i == labels, 0, new_image)
 
     return new_image
+
+def remove_dim_blobs(image, binary, min_int):
+    labels, n_blobs = ndimage.label(image)
+    new_binimage = binary.copy()
+    logger = logging.getLogger(__name__)
+    intensities=np.empty(n_blobs)
+    for i in range(1, n_blobs + 1):
+        intensities[i-1] = np.sum(image[labels==i])
+        logger.debug('blob '+str(i)+' intensity = '+str(intensities[i-1]))
+        if intensities[i-1] < min_int: 
+            new_binimage = np.where(i == labels, 0, new_binimage)
+            logger.debug('blob '+str(i)+' eliminated')
+
+    return new_binimage, intensities
 
 
 def rotate_beamlets(image):
